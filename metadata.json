@@ -1,0 +1,5 @@
+{
+  "name": "RIP - Resume Intelligence Platform",
+  "description": "An AI-powered, time-aware Resume Intelligence Platform with built-in Role Matching, Candidate Comparison and AI-generated Interview Questioning using Gemini 2.5 Flash.",
+  "requestFramePermissions": []
+}
