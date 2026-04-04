@@ -1,0 +1,2 @@
+- CHange the token usage from localStorage to http only cookie.
+- Give user the chance to modify values in the profile befor it is saved to the database.
