@@ -5,7 +5,8 @@ import {
   deleteCandidate,
   updateCandidate,
 } from "../services/storageService";
-import { generateInterviewQuestions } from "../services/geminiService";
+import { generateInterviewQuestions } from "../services/aiService";
+import { apiClient } from "../services/apiClient";
 import { Candidate, InterviewQuestion, ResumeData } from "../types";
 import {
   ArrowLeft,
@@ -22,13 +23,36 @@ import {
   Edit2,
   Save,
   X,
+  Globe,
   History,
   ExternalLink,
-  Globe,
+  Loader2,
+  AlertCircle,
 } from "lucide-react";
+
 import clsx from "clsx";
 import { useNavigate } from "react-router-dom";
 import DiffViewer from "../components/DiffViewer";
+
+const Github = ({ className }: { className?: string }) => (
+  <svg className={className} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+    <path d="M9 19c-5 1.5-5-2.5-7-3m14 6v-3.87a3.37 3.37 0 0 0-.94-2.61c3.14-.35 6.44-1.54 6.44-7A5.44 5.44 0 0 0 20 4.77 5.07 5.07 0 0 0 19.91 1S18.73.65 16 2.48a13.38 13.38 0 0 0-7 0C6.27.65 5.09 1 5.09 1A5.07 5.07 0 0 0 5 4.77a5.44 5.44 0 0 0-1.5 3.78c0 5.42 3.3 6.61 6.44 7A3.37 3.37 0 0 0 9 18.13V22" />
+  </svg>
+);
+
+const Linkedin = ({ className }: { className?: string }) => (
+  <svg className={className} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+    <path d="M16 8a6 6 0 0 1 6 6v7h-4v-7a2 2 0 0 0-2-2 2 2 0 0 0-2 2v7h-4v-7a6 6 0 0 1 6-6z" />
+    <rect width="4" height="12" x="2" y="9" />
+    <circle cx="4" cy="4" r="2" />
+  </svg>
+);
+
+const Twitter = ({ className }: { className?: string }) => (
+  <svg className={className} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+    <path d="M22 4s-.7 2.1-2 3.4c1.6 10-9.4 17.3-18 11.6 2.2.1 4.4-.6 6-2C3 15.5.5 9.6 3 5c2.2 2.6 5.6 4.1 9 4-.9-4.2 4-6.6 7-3.8 1.1 0 3-1.2 3-1.2z" />
+  </svg>
+);
 
 type Experience = {
   role: string;
@@ -62,29 +86,83 @@ const CandidateDetail: React.FC = () => {
   const [questions, setQuestions] = useState<InterviewQuestion[]>([]);
   const [loadingQuestions, setLoadingQuestions] = useState(false);
   const [activeTab, setActiveTab] = useState<TabId>("profile");
+  const [isLoading, setIsLoading] = useState(true);
+  const [previewUrl, setPreviewUrl] = useState<string | null>(null);
+  const [isPreviewLoading, setIsPreviewLoading] = useState(false);
 
   // Edit Mode State
   const [isEditing, setIsEditing] = useState(false);
   const [editData, setEditData] = useState<ResumeData | null>(null);
 
+  const currentVersion =
+    candidate?.versions.find((v) => v.versionId === selectedVersionId) ||
+    candidate?.versions[0];
+  const compareVersion = candidate?.versions.find(
+    (v) => v.versionId === compareVersionId,
+  );
+
   useEffect(() => {
     if (id) {
-      const c = getCandidateById(id);
-      if (c) {
-        setCandidate(c);
-        setSelectedVersionId(c.versions[0].versionId);
-        // Default comparison: if more than 1 version, compare latest with previous
-        if (c.versions.length > 1) {
-          setCompareVersionId(c.versions[1].versionId);
+      setIsLoading(true);
+      getCandidateById(id).then((c) => {
+        setCandidate(c || undefined);
+        if (c) {
+          if (c.versions.length > 0) {
+            setSelectedVersionId(c.versions[0].versionId);
+          }
+          if (c.versions.length > 1) {
+            setCompareVersionId(c.versions[1].versionId);
+          }
         }
-      }
+      }).finally(() => {
+        setIsLoading(false);
+      });
     }
   }, [id]);
 
-  const handleDelete = () => {
+  useEffect(() => {
+    // Cleanup preview URL on change/unmount
+    return () => {
+      if (previewUrl) {
+        window.URL.revokeObjectURL(previewUrl);
+      }
+    };
+  }, [previewUrl]);
+
+  useEffect(() => {
+    const fetchPreview = async () => {
+      if (activeTab === "raw" && currentVersion?.fileId && !previewUrl) {
+        setIsPreviewLoading(true);
+        try {
+          const res = await apiClient(`http://localhost:5000/api/candidate/download/${currentVersion.fileId}`);
+          if (res.ok) {
+            const blob = await res.blob();
+            const url = window.URL.createObjectURL(blob);
+            setPreviewUrl(url);
+          }
+        } catch (err) {
+          console.error("Preview fetch failed", err);
+        } finally {
+          setIsPreviewLoading(false);
+        }
+      }
+    };
+
+    fetchPreview();
+  }, [activeTab, currentVersion?.fileId]);
+
+  // Reset preview when version changes
+  useEffect(() => {
+    if (previewUrl) {
+      window.URL.revokeObjectURL(previewUrl);
+      setPreviewUrl(null);
+    }
+  }, [selectedVersionId]);
+
+  const handleDelete = async () => {
     if (window.confirm("Are you sure you want to delete this candidate?")) {
       if (id) {
-        deleteCandidate(id);
+        await deleteCandidate(id);
         navigate("/candidates");
       }
     }
@@ -101,17 +179,17 @@ const CandidateDetail: React.FC = () => {
     }
   };
 
-  const handleSave = () => {
+  const handleSave = async () => {
     if (candidate && editData) {
       const updatedCandidate: Candidate = {
         ...candidate,
         fullName: editData.fullName,
         email: editData.email,
         phone: editData.phone,
-        updatedAt: Date.now(),
+        updatedAt: new Date().toISOString(),
         currentData: editData,
       };
-      updateCandidate(updatedCandidate);
+      await updateCandidate(updatedCandidate);
       setCandidate(updatedCandidate);
       setIsEditing(false);
       setEditData(null);
@@ -125,6 +203,7 @@ const CandidateDetail: React.FC = () => {
     setQuestions(qs);
     setLoadingQuestions(false);
   };
+
 
   // Helper to format data for diff
   const formatList = (items: string[]) => items.map((i) => `• ${i}`).join("\n");
@@ -143,19 +222,19 @@ const CandidateDetail: React.FC = () => {
       )
       .join("\n\n-------------------\n\n");
 
+  if (isLoading)
+    return (
+      <div className="flex justify-center items-center h-64">
+        <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-indigo-600"></div>
+      </div>
+    );
+
   if (!candidate)
-    return <div className="p-8 text-center">Candidate not found</div>;
+    return <div className="p-8 text-center text-gray-500">Candidate not found</div>;
 
-  const currentVersion =
-    candidate.versions.find((v) => v.versionId === selectedVersionId) ||
-    candidate.versions[0];
-  const compareVersion = candidate.versions.find(
-    (v) => v.versionId === compareVersionId,
-  );
-
-  const displayData = isEditing && editData ? editData : currentVersion.data;
+  const displayData = (isEditing && editData ? editData : currentVersion?.data) as ResumeData;
   const isViewingLatest =
-    currentVersion.versionId === candidate.versions[0].versionId;
+    currentVersion?.versionId === candidate?.versions[0].versionId;
 
   return (
     <div className="space-y-6 pb-10">
@@ -247,11 +326,14 @@ const CandidateDetail: React.FC = () => {
               displayData.socialLinks.length > 0 && (
                 <div className="flex gap-3 mt-2">
                   {displayData.socialLinks.map((link, idx) => {
-                    let Icon = Globe;
-                    if (link.platform.toLowerCase().includes("linkedin"))
-                      Icon = Linkedin;
-                    if (link.platform.toLowerCase().includes("github"))
-                      Icon = Github;
+                    const platformStr = (link.platform || "").toLowerCase();
+                    const urlStr = (link.url || "").toLowerCase();
+                    let Icon: React.ElementType = Globe;
+                    
+                    if (platformStr.includes("github") || urlStr.includes("github")) Icon = Github;
+                    else if (platformStr.includes("linkedin") || urlStr.includes("linkedin")) Icon = Linkedin;
+                    else if (platformStr.includes("twitter") || platformStr === "x" || urlStr.includes("twitter") || urlStr.includes("x.com")) Icon = Twitter;
+                    
                     return (
                       <a
                         key={idx}
@@ -474,13 +556,38 @@ const CandidateDetail: React.FC = () => {
           )}
 
           {activeTab === "raw" && (
-            <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-200">
-              <h2 className="text-lg font-semibold text-gray-900 mb-4">
-                Raw Resume Text
-              </h2>
-              <pre className="whitespace-pre-wrap text-sm text-gray-700 font-mono bg-gray-50 p-4 rounded-lg border border-gray-200 overflow-x-auto max-h-[600px] overflow-y-auto">
-                {currentVersion.rawText || "No raw text available."}
-              </pre>
+            <div className="bg-white rounded-xl shadow-sm border border-gray-200 flex flex-col h-[700px]">
+              <div className="p-6 border-b border-gray-100 flex justify-between items-center bg-gray-50/30 rounded-t-xl">
+                <h2 className="text-lg font-semibold text-gray-900">
+                  {currentVersion?.fileId ? "Resume Preview" : "Raw Resume Text"}
+                </h2>
+              </div>
+              
+              <div className="flex-1 w-full bg-gray-50 flex flex-col items-center justify-center relative overflow-hidden rounded-b-xl">
+                {currentVersion.fileId ? (
+                   previewUrl ? (
+                    <iframe 
+                      src={previewUrl} 
+                      className="w-full h-full border-none"
+                      title="PDF Preview"
+                    />
+                   ) : isPreviewLoading ? (
+                    <div className="flex flex-col items-center gap-2 text-gray-400">
+                        <Loader2 className="w-8 h-8 animate-spin" />
+                        <p className="text-sm">Loading PDF Preview...</p>
+                    </div>
+                   ) : (
+                    <div className="text-gray-400 text-center p-8">
+                       <AlertCircle className="w-12 h-12 mx-auto mb-2 opacity-50" />
+                       <p>Failed to load PDF preview.</p>
+                    </div>
+                   )
+                ) : (
+                  <pre className="w-full h-full p-6 whitespace-pre-wrap text-sm text-gray-700 font-mono bg-white overflow-y-auto">
+                    {currentVersion.rawText || "No raw text available."}
+                  </pre>
+                )}
+              </div>
             </div>
           )}
 
@@ -584,7 +691,7 @@ const CandidateDetail: React.FC = () => {
               )}
 
               <div className="space-y-6">
-                {questions.map((q, i) => (
+                {Array.isArray(questions) && questions.map((q, i) => (
                   <div
                     key={i}
                     className="border-l-4 border-indigo-500 pl-4 py-1 bg-indigo-50/30 p-4 rounded-r-lg"

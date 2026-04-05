@@ -46,8 +46,10 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
 
     if (response.ok) {
       setUser(data.user);
-      console.log(data);
       localStorage.setItem("rip_user", JSON.stringify(data.user));
+      if (data.token) {
+        localStorage.setItem("rip_token", data.token);
+      }
     } else {
       throw new Error(data.message);
     }
@@ -65,8 +67,10 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
 
     if (response.ok) {
       setUser(data.user);
-      console.log(data);
       localStorage.setItem("rip_user", JSON.stringify(data.user));
+      if (data.token) {
+        localStorage.setItem("rip_token", data.token);
+      }
     } else {
       throw new Error(data.message);
     }
@@ -75,6 +79,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
   const logout = () => {
     setUser(null);
     localStorage.removeItem("rip_user");
+    localStorage.removeItem("rip_token");
   };
 
   return (

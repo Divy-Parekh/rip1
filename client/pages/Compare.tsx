@@ -5,13 +5,13 @@ import {
   getJobRoleById,
   getJobRoles,
 } from "../services/storageService";
-import { SavedJobRole } from "../types";
+import { SavedJobRole, Candidate } from "../types";
 import { Search, X, Plus, Briefcase, ChevronDown, Check } from "lucide-react";
 import clsx from "clsx";
 
 const Compare: React.FC = () => {
   const [searchParams, setSearchParams] = useSearchParams();
-  const allCandidates = getCandidates();
+  const [allCandidates, setAllCandidates] = useState<Candidate[]>([]);
   const [selectedIds, setSelectedIds] = useState<string[]>([]);
   const [searchQuery, setSearchQuery] = useState("");
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
@@ -21,25 +21,32 @@ const Compare: React.FC = () => {
   const [jobRole, setJobRole] = useState<SavedJobRole | null>(null);
   const [availableRoles, setAvailableRoles] = useState<SavedJobRole[]>([]);
 
-  // Initialize from URL
+  // Load candidates and init from URL
   useEffect(() => {
-    const idsParam = searchParams.get("ids");
-    const roleId = searchParams.get("roleId");
+    const init = async () => {
+      const [candidates, roles] = await Promise.all([
+        getCandidates(),
+        getJobRoles(),
+      ]);
+      setAllCandidates(candidates);
+      setAvailableRoles(roles);
 
-    setAvailableRoles(getJobRoles());
+      const idsParam = searchParams.get("ids");
+      const roleId = searchParams.get("roleId");
 
-    if (idsParam) {
-      const ids = idsParam
-        .split(",")
-        .filter((id) => allCandidates.some((c) => c.id === id));
-      // Take max 3 unique IDs
-      setSelectedIds([...new Set(ids)].slice(0, 3));
-    }
+      if (idsParam) {
+        const ids = idsParam
+          .split(",")
+          .filter((id) => candidates.some((c) => c.id === id));
+        setSelectedIds([...new Set(ids)].slice(0, 3));
+      }
 
-    if (roleId) {
-      const role = getJobRoleById(roleId);
-      if (role) setJobRole(role);
-    }
+      if (roleId) {
+        const role = await getJobRoleById(roleId);
+        if (role) setJobRole(role);
+      }
+    };
+    init();
   }, [searchParams]);
 
   const updateUrlParams = (newIds: string[], roleId: string | undefined) => {
@@ -49,7 +56,7 @@ const Compare: React.FC = () => {
     setSearchParams(newParams);
   };
 
-  const handleRoleChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
+  const handleRoleChange = async (e: React.ChangeEvent<HTMLSelectElement>) => {
     const roleId = e.target.value;
     if (roleId) {
       const role = availableRoles.find((r) => r.id === roleId);

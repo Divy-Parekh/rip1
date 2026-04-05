@@ -3,8 +3,9 @@ import mongoose from "mongoose";
 import authRoutes from "./routes/auth.route.js";
 import candidateRoutes from "./routes/candidate.route.js";
 import cors from "cors";
-import { MONGO_PASSWORD, MONGO_USER } from "./config/env.js";
+import { MONGO_URL } from "./config/env.js";
 import jobRoutes from "./routes/job.route.js";
+import aiRoutes from "./routes/ai.route.js";
 
 const app = express();
 
@@ -19,11 +20,10 @@ app.get("/health", (_req, res) => {
 app.use("/api/auth", authRoutes);
 app.use("/api/candidate", candidateRoutes);
 app.use("/api/jobs", jobRoutes);
+app.use("/api/ai", aiRoutes);
 
 mongoose
-  .connect(
-    `mongodb+srv://${MONGO_USER}:${MONGO_PASSWORD}@projects.orpph.mongodb.net/resume_intelligence_platform?appName=Projects`,
-  )
+  .connect(MONGO_URL)
   .then(() => console.log("DB connected"))
   .catch((err) => console.error(err));
 

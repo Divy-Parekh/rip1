@@ -10,6 +10,7 @@ import {
   LucideIcon,
 } from "lucide-react";
 import { Link } from "react-router-dom";
+import { StatCardSkeleton, CandidateSkeleton } from "../components/Skeleton";
 
 type StatCardProps = {
   icon: LucideIcon;
@@ -32,11 +33,19 @@ const StatCard = ({ icon: Icon, label, value, color }: StatCardProps) => (
 
 const Dashboard: React.FC = () => {
   const [candidates, setCandidates] = useState<Candidate[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
     async function fetchCandidates() {
-      const candidates = await getCandidates();
-      setCandidates(candidates);
+      setIsLoading(true);
+      try {
+        const candidates = await getCandidates();
+        setCandidates(candidates);
+      } catch (err) {
+        console.error("Error fetching candidates:", err);
+      } finally {
+        setIsLoading(false);
+      }
     }
 
     fetchCandidates();
@@ -70,30 +79,41 @@ const Dashboard: React.FC = () => {
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-        <StatCard
-          icon={Users}
-          label="Total Candidates"
-          value={totalCandidates}
-          color="bg-blue-500"
-        />
-        <StatCard
-          icon={Clock}
-          label="New This Week"
-          value={recentUploads}
-          color="bg-green-500"
-        />
-        <StatCard
-          icon={Award}
-          label="Unique Skills"
-          value={totalSkills}
-          color="bg-purple-500"
-        />
-        <StatCard
-          icon={TrendingUp}
-          label="Avg Experience"
-          value={`${avgExp} Yrs`}
-          color="bg-orange-500"
-        />
+        {isLoading ? (
+          <>
+            <StatCardSkeleton />
+            <StatCardSkeleton />
+            <StatCardSkeleton />
+            <StatCardSkeleton />
+          </>
+        ) : (
+          <>
+            <StatCard
+              icon={Users}
+              label="Total Candidates"
+              value={totalCandidates}
+              color="bg-blue-500"
+            />
+            <StatCard
+              icon={Clock}
+              label="New This Week"
+              value={recentUploads}
+              color="bg-green-500"
+            />
+            <StatCard
+              icon={Award}
+              label="Unique Skills"
+              value={totalSkills}
+              color="bg-purple-500"
+            />
+            <StatCard
+              icon={TrendingUp}
+              label="Avg Experience"
+              value={`${avgExp} Yrs`}
+              color="bg-orange-500"
+            />
+          </>
+        )}
       </div>
 
       <div className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
@@ -107,44 +127,53 @@ const Dashboard: React.FC = () => {
           </Link>
         </div>
         <div className="divide-y divide-gray-100">
-          {sortedCandidates.map((candidate) => (
-            <Link
-              to={`/candidates/${candidate.id}`}
-              key={candidate.id}
-              className="block hover:bg-gray-50 transition-colors group"
-            >
-              <div className="p-6 flex justify-between items-center">
-                <div className="flex items-center gap-4">
-                  <div className="h-10 w-10 rounded-full bg-indigo-100 flex items-center justify-center text-indigo-700 font-bold text-sm group-hover:bg-indigo-200 transition-colors">
-                    {candidate.fullName.charAt(0).toUpperCase()}
+          {isLoading ? (
+            <>
+              <CandidateSkeleton />
+              <CandidateSkeleton />
+              <CandidateSkeleton />
+              <CandidateSkeleton />
+              <CandidateSkeleton />
+            </>
+          ) : candidates.length > 0 ? (
+            sortedCandidates.map((candidate) => (
+              <Link
+                to={`/candidates/${candidate.id}`}
+                key={candidate.id}
+                className="block hover:bg-gray-50 transition-colors group"
+              >
+                <div className="p-6 flex justify-between items-center">
+                  <div className="flex items-center gap-4">
+                    <div className="h-10 w-10 rounded-full bg-indigo-100 flex items-center justify-center text-indigo-700 font-bold text-sm group-hover:bg-indigo-200 transition-colors">
+                      {candidate.fullName.charAt(0).toUpperCase()}
+                    </div>
+                    <div>
+                      <h3 className="font-medium text-gray-900 group-hover:text-indigo-600 transition-colors">
+                        {candidate.fullName}
+                      </h3>
+                      <p className="text-sm text-gray-500">
+                        {candidate.currentData.experience?.[0]?.role ||
+                          candidate.currentData.skills[0] ||
+                          "No role identified"}
+                      </p>
+                    </div>
                   </div>
-                  <div>
-                    <h3 className="font-medium text-gray-900 group-hover:text-indigo-600 transition-colors">
-                      {candidate.fullName}
-                    </h3>
-                    <p className="text-sm text-gray-500">
-                      {candidate.currentData.experience?.[0]?.role ||
-                        candidate.currentData.skills[0] ||
-                        "No role identified"}
-                    </p>
+                  <div className="flex items-center gap-6">
+                    <div className="text-right hidden sm:block">
+                      <p className="text-sm font-medium text-gray-900">
+                        {candidate.currentData.totalExperienceYears || 0} years
+                        exp
+                      </p>
+                      <p className="text-xs text-gray-400">
+                        {new Date(candidate.updatedAt).toLocaleDateString()}
+                      </p>
+                    </div>
+                    <ChevronRight className="w-5 h-5 text-gray-300 group-hover:text-indigo-400" />
                   </div>
                 </div>
-                <div className="flex items-center gap-6">
-                  <div className="text-right hidden sm:block">
-                    <p className="text-sm font-medium text-gray-900">
-                      {candidate.currentData.totalExperienceYears || 0} years
-                      exp
-                    </p>
-                    <p className="text-xs text-gray-400">
-                      {new Date(candidate.updatedAt).toLocaleDateString()}
-                    </p>
-                  </div>
-                  <ChevronRight className="w-5 h-5 text-gray-300 group-hover:text-indigo-400" />
-                </div>
-              </div>
-            </Link>
-          ))}
-          {candidates.length === 0 && (
+              </Link>
+            ))
+          ) : (
             <div className="p-12 text-center text-gray-500">
               <p className="mb-2">No candidates found.</p>
               <Link

@@ -39,9 +39,10 @@ export interface ResumeData {
 
 export interface ResumeVersion {
   versionId: string;
-  uploadedAt: number;
+  uploadedAt: string;
   uploadedBy: string;
   rawText: string;
+  fileId?: string;
   data: ResumeData;
 }
 
@@ -53,8 +54,8 @@ export interface Candidate {
   versions: ResumeVersion[];
   // Aggregated/Latest data
   currentData: ResumeData;
-  createdAt: number;
-  updatedAt: number;
+  createdAt: string;
+  updatedAt: string;
   matchScore?: number; // Transient field for search
   missingSkills?: string[]; // Transient
 }
@@ -68,7 +69,7 @@ export interface JobRole {
 
 export interface SavedJobRole extends JobRole {
   id: string;
-  createdAt: number;
+  createdAt: string;
 }
 
 export interface InterviewQuestion {

@@ -6,10 +6,7 @@ import {
   deleteJobRole,
   updateJobRole,
 } from "../services/storageService";
-import {
-  analyzeCandidateMatch,
-  generateInterviewQuestions,
-} from "../services/geminiService";
+import { analyzeCandidateMatch, generateInterviewQuestions } from "../services/aiService";
 import { Candidate, SavedJobRole, InterviewQuestion } from "../types";
 import {
   Briefcase,
@@ -81,7 +78,7 @@ const RoleMatch: React.FC = () => {
 
   // Load Roles
   useEffect(() => {
-    setSavedRoles(getJobRoles());
+    getJobRoles().then(setSavedRoles);
   }, []);
 
   // Auto-run analysis when entering analyze view
@@ -103,7 +100,7 @@ const RoleMatch: React.FC = () => {
     return Object.keys(newErrors).length === 0;
   };
 
-  const handleSaveRole = () => {
+  const handleSaveRole = async () => {
     if (!validateForm()) return;
 
     const skillsList = formData.skills
@@ -112,7 +109,6 @@ const RoleMatch: React.FC = () => {
       .filter(Boolean);
 
     if (editingRoleId) {
-      // Update existing
       const roleToUpdate = savedRoles.find((r) => r.id === editingRoleId);
       if (roleToUpdate) {
         const updatedRole: SavedJobRole = {
@@ -122,11 +118,10 @@ const RoleMatch: React.FC = () => {
           minExperience: formData.minExperience,
           description: formData.description,
         };
-        updateJobRole(updatedRole);
+        await updateJobRole(updatedRole);
       }
     } else {
-      // Create new
-      addJobRole({
+      await addJobRole({
         title: formData.title,
         requiredSkills: skillsList,
         minExperience: formData.minExperience,
@@ -134,10 +129,10 @@ const RoleMatch: React.FC = () => {
       });
     }
 
-    setSavedRoles(getJobRoles());
+    setSavedRoles(await getJobRoles());
     setView("list");
     setEditingRoleId(null);
-    setFormData({ title: "", skills: "", minExperience: 2, description: "" }); // Reset
+    setFormData({ title: "", skills: "", minExperience: 2, description: "" });
   };
 
   const handleEditRole = (e: React.MouseEvent, role: SavedJobRole) => {
@@ -152,11 +147,11 @@ const RoleMatch: React.FC = () => {
     setView("create");
   };
 
-  const handleDeleteRole = (e: React.MouseEvent, id: string) => {
+  const handleDeleteRole = async (e: React.MouseEvent, id: string) => {
     e.stopPropagation();
     if (window.confirm("Delete this job role?")) {
-      deleteJobRole(id);
-      setSavedRoles(getJobRoles());
+      await deleteJobRole(id);
+      setSavedRoles(await getJobRoles());
       if (selectedRole?.id === id) {
         setView("list");
         setSelectedRole(null);
@@ -174,7 +169,7 @@ const RoleMatch: React.FC = () => {
   const handleAnalyze = async (role: SavedJobRole) => {
     setIsAnalyzing(true);
 
-    const allCandidates = getCandidates();
+    const allCandidates = await getCandidates();
     const skillsList = role.requiredSkills.map((s) => s.toLowerCase());
 
     // 1. Preliminary Filter

@@ -41,26 +41,29 @@ export interface IResumeData {
 
 export interface IResumeVersion {
   versionId: string;
-  uploadedAt: number;
+  uploadedAt: Date;
   uploadedBy: string;
   rawText: string;
+  fileId?: string; // GridFS file ID
   data: IResumeData;
 }
 
 export interface ICandidate extends Document {
+  id: string; // client-generated uuid
+  userId: mongoose.Types.ObjectId;
   fullName: string;
   email: string;
   phone: string;
   versions: IResumeVersion[];
   currentData: IResumeData;
-  createdAt: number;
-  updatedAt: number;
+  createdAt: Date;
+  updatedAt: Date;
 }
 
 const SocialLinkSchema = new Schema<ISocialLink>(
   {
-    platform: { type: String, required: true },
-    url: { type: String, required: true },
+    platform: { type: String, default: "" },
+    url: { type: String, default: "" },
   },
   { _id: false },
 );
@@ -114,22 +117,25 @@ const ResumeDataSchema = new Schema<IResumeData>(
 const ResumeVersionSchema = new Schema<IResumeVersion>(
   {
     versionId: { type: String, required: true },
-    uploadedAt: { type: Number, required: true, default: () => Date.now() },
+    uploadedAt: { type: Date, required: true, default: Date.now },
     uploadedBy: { type: String, required: true },
     rawText: { type: String, required: true },
+    fileId: { type: String },
     data: { type: ResumeDataSchema, required: true },
   },
   { _id: false },
 );
 
 const CandidateSchema = new Schema<ICandidate>({
+  id: { type: String, unique: true, sparse: true },
+  userId: { type: Schema.Types.ObjectId, ref: "User", required: true },
   fullName: { type: String, required: true },
   email: { type: String, default: "" },
   phone: { type: String, default: "" },
   versions: [ResumeVersionSchema],
   currentData: { type: ResumeDataSchema, required: true },
-  createdAt: { type: Number, default: () => Date.now() },
-  updatedAt: { type: Number, default: () => Date.now() },
+  createdAt: { type: Date, default: Date.now },
+  updatedAt: { type: Date, default: Date.now },
 });
 
 export default mongoose.model<ICandidate>("Candidate", CandidateSchema);

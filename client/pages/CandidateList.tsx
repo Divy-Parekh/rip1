@@ -1,5 +1,6 @@
-import React, { useState, useMemo } from "react";
+import React, { useState, useMemo, useEffect } from "react";
 import { getCandidates } from "../services/storageService";
+import { Candidate } from "../types";
 import { Link, useNavigate } from "react-router-dom";
 import {
   Search,
@@ -10,9 +11,17 @@ import {
 
 const CandidateList: React.FC = () => {
   const navigate = useNavigate();
-  const candidates = getCandidates();
+  const [candidates, setCandidates] = useState<Candidate[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState("");
   const [minExp, setMinExp] = useState(0);
+
+  useEffect(() => {
+    setIsLoading(true);
+    getCandidates()
+      .then(setCandidates)
+      .finally(() => setIsLoading(false));
+  }, []);
 
   // Search Logic
   const filteredCandidates = useMemo(() => {
@@ -179,7 +188,16 @@ const CandidateList: React.FC = () => {
                 </td>
               </tr>
             ))}
-            {filteredCandidates.length === 0 && (
+            {isLoading ? (
+              <tr>
+                <td colSpan={6} className="px-6 py-20 text-center text-gray-500">
+                  <div className="flex flex-col items-center gap-2">
+                    <div className="w-8 h-8 border-4 border-indigo-600 border-t-transparent rounded-full animate-spin"></div>
+                    <p>Loading candidates...</p>
+                  </div>
+                </td>
+              </tr>
+            ) : filteredCandidates.length === 0 ? (
               <tr>
                 <td
                   colSpan={6}
@@ -188,7 +206,7 @@ const CandidateList: React.FC = () => {
                   No candidates match your search.
                 </td>
               </tr>
-            )}
+            ) : null}
           </tbody>
         </table>
       </div>

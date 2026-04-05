@@ -1,18 +1,14 @@
 import { Candidate, ResumeData, ResumeVersion, SavedJobRole } from "../types";
 import { v4 as uuidv4 } from "uuid";
+import { apiClient } from "./apiClient";
 
-// const STORAGE_KEY = "rip_candidates";
-// const ROLES_STORAGE_KEY = "rip_job_roles";
 const CANDIDATE_BASE_URL = "http://localhost:5000/api/candidate";
 const JOBS_BASE_URL = "http://localhost:5000/api/jobs";
 
 // --- Candidates ---
 export const getCandidates = async (): Promise<Candidate[]> => {
   try {
-    const res = await fetch(`${CANDIDATE_BASE_URL}/all`);
-
-    if (!res.ok) throw new Error("Failed to fetch candidates");
-
+    const res = await apiClient(`${CANDIDATE_BASE_URL}/all`);
     return await res.json();
   } catch (error) {
     console.error(error);
@@ -24,16 +20,10 @@ export const createCandidate = async (
   candidate: Candidate,
 ): Promise<Candidate | null> => {
   try {
-    const res = await fetch(`${CANDIDATE_BASE_URL}/create`, {
+    const res = await apiClient(`${CANDIDATE_BASE_URL}/create`, {
       method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-      },
       body: JSON.stringify(candidate),
     });
-
-    if (!res.ok) throw new Error("Failed to create");
-
     return await res.json();
   } catch (error) {
     console.error(error);
@@ -45,10 +35,7 @@ export const getCandidateById = async (
   id: string,
 ): Promise<Candidate | null> => {
   try {
-    const res = await fetch(`${CANDIDATE_BASE_URL}/${id}`);
-
-    if (!res.ok) return null;
-
+    const res = await apiClient(`${CANDIDATE_BASE_URL}/${id}`);
     return await res.json();
   } catch (error) {
     console.error(error);
@@ -61,12 +48,9 @@ export const getCandidateByEmailAndPhone = async (
   phone: string,
 ): Promise<Candidate | null> => {
   try {
-    const res = await fetch(
+    const res = await apiClient(
       `${CANDIDATE_BASE_URL}?email=${email}&phone=${phone}`,
     );
-
-    if (!res.ok) return null;
-
     return await res.json();
   } catch (error) {
     console.error(error);
@@ -78,11 +62,8 @@ export const updateCandidate = async (
   candidate: Candidate,
 ): Promise<boolean> => {
   try {
-    const res = await fetch(`${CANDIDATE_BASE_URL}/${candidate.id}`, {
+    const res = await apiClient(`${CANDIDATE_BASE_URL}/${candidate.id}`, {
       method: "PUT",
-      headers: {
-        "Content-Type": "application/json",
-      },
       body: JSON.stringify(candidate),
     });
 
@@ -95,7 +76,7 @@ export const updateCandidate = async (
 
 export const deleteCandidate = async (id: string): Promise<boolean> => {
   try {
-    const res = await fetch(`${CANDIDATE_BASE_URL}/${id}`, {
+    const res = await apiClient(`${CANDIDATE_BASE_URL}/${id}`, {
       method: "DELETE",
     });
 
@@ -106,10 +87,6 @@ export const deleteCandidate = async (id: string): Promise<boolean> => {
   }
 };
 
-// export const saveCandidates = (candidates: Candidate[]) => {
-//   localStorage.setItem(STORAGE_KEY, JSON.stringify(candidates));
-// };
-
 export const findDuplicate = async (
   email: string,
   phone: string,
@@ -118,10 +95,29 @@ export const findDuplicate = async (
   return candidate;
 };
 
+export const uploadFile = async (file: File): Promise<{ fileId: string; filename: string }> => {
+  const formData = new FormData();
+  formData.append("file", file);
+
+  const res = await apiClient(`${CANDIDATE_BASE_URL}/upload`, {
+    method: "POST",
+    body: formData,
+    // Note: Fetch sets the correct boundary when body is FormData,
+    // so we must NOT set Content-Type manually.
+    headers: {
+        "Content-Type": "undefined" // placeholder to be removed by apiClient or fetch
+    }
+  });
+
+  if (!res.ok) throw new Error("File upload failed");
+  return await res.json();
+};
+
 export const addOrUpdateCandidate = async (
   parsedData: ResumeData,
   rawText: string,
   uploadedBy: string,
+  fileId?: string,
 ): Promise<Candidate | null> => {
   const existing = await findDuplicate(parsedData.email, parsedData.phone);
 
@@ -130,6 +126,7 @@ export const addOrUpdateCandidate = async (
     uploadedAt: Date.now(),
     uploadedBy,
     rawText,
+    fileId,
     data: parsedData,
   };
 
@@ -156,19 +153,17 @@ export const addOrUpdateCandidate = async (
       updatedAt: Date.now(),
       versions: [newVersion],
       currentData: parsedData,
-    };
+    } as Candidate;
 
     return await createCandidate(newCandidate);
   }
 };
+
 // --- Job Roles ---
 
 export const getJobRoles = async (): Promise<SavedJobRole[]> => {
   try {
-    const res = await fetch(JOBS_BASE_URL + "/all");
-
-    if (!res.ok) throw new Error("Failed to fetch roles");
-
+    const res = await apiClient(JOBS_BASE_URL + "/all");
     return await res.json();
   } catch (error) {
     console.error(error);
@@ -180,10 +175,7 @@ export const getJobRoleById = async (
   id: string,
 ): Promise<SavedJobRole | null> => {
   try {
-    const res = await fetch(`${JOBS_BASE_URL}/${id}`);
-
-    if (!res.ok) return null;
-
+    const res = await apiClient(`${JOBS_BASE_URL}/${id}`);
     return await res.json();
   } catch (error) {
     console.error(error);
@@ -195,16 +187,10 @@ export const addJobRole = async (
   role: Omit<SavedJobRole, "id" | "createdAt">,
 ): Promise<SavedJobRole | null> => {
   try {
-    const res = await fetch(JOBS_BASE_URL, {
+    const res = await apiClient(JOBS_BASE_URL, {
       method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-      },
       body: JSON.stringify(role),
     });
-
-    if (!res.ok) throw new Error("Failed to create role");
-
     return await res.json();
   } catch (error) {
     console.error(error);
@@ -212,17 +198,10 @@ export const addJobRole = async (
   }
 };
 
-// export const saveJobRoles = (roles: SavedJobRole[]) => {
-//   localStorage.setItem(ROLES_STORAGE_KEY, JSON.stringify(roles));
-// };
-
 export const updateJobRole = async (role: SavedJobRole): Promise<boolean> => {
   try {
-    const res = await fetch(`${JOBS_BASE_URL}/${role.id}`, {
+    const res = await apiClient(`${JOBS_BASE_URL}/${role.id}`, {
       method: "PUT",
-      headers: {
-        "Content-Type": "application/json",
-      },
       body: JSON.stringify(role),
     });
 
@@ -235,7 +214,7 @@ export const updateJobRole = async (role: SavedJobRole): Promise<boolean> => {
 
 export const deleteJobRole = async (id: string): Promise<boolean> => {
   try {
-    const res = await fetch(`${JOBS_BASE_URL}/${id}`, {
+    const res = await apiClient(`${JOBS_BASE_URL}/${id}`, {
       method: "DELETE",
     });
 
