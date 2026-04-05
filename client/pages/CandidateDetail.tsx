@@ -566,7 +566,7 @@ const CandidateDetail: React.FC = () => {
               </div>
               
               <div className="flex-1 w-full bg-gray-50 flex flex-col items-center justify-center relative overflow-hidden rounded-b-xl">
-                {currentVersion.fileId ? (
+                {currentVersion?.fileId ? (
                    previewUrl ? (
                     <iframe 
                       src={previewUrl} 
@@ -586,7 +586,7 @@ const CandidateDetail: React.FC = () => {
                    )
                 ) : (
                   <pre className="w-full h-full p-6 whitespace-pre-wrap text-sm text-gray-700 font-mono bg-white overflow-y-auto">
-                    {currentVersion.rawText || "No raw text available."}
+                    {currentVersion?.rawText || "No raw text available."}
                   </pre>
                 )}
               </div>
@@ -641,7 +641,7 @@ const CandidateDetail: React.FC = () => {
                   <DiffViewer
                     title="Skills Changes"
                     oldText={formatList(compareVersion.data.skills || [])}
-                    newText={formatList(currentVersion.data.skills || [])}
+                    newText={formatList(currentVersion?.data?.skills || [])}
                   />
                   <DiffViewer
                     title="Experience Changes"
@@ -649,13 +649,13 @@ const CandidateDetail: React.FC = () => {
                       compareVersion.data.experience || [],
                     )}
                     newText={formatExperience(
-                      currentVersion.data.experience || [],
+                      currentVersion?.data?.experience || [],
                     )}
                   />
                   <DiffViewer
                     title="Projects Changes"
                     oldText={formatProjects(compareVersion.data.projects || [])}
-                    newText={formatProjects(currentVersion.data.projects || [])}
+                    newText={formatProjects(currentVersion?.data?.projects || [])}
                   />
                 </div>
               ) : (

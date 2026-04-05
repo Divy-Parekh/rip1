@@ -53,7 +53,7 @@ const Dashboard: React.FC = () => {
 
   const totalCandidates = candidates.length;
   const recentUploads = candidates.filter(
-    (c) => Date.now() - c.updatedAt < 7 * 24 * 60 * 60 * 1000,
+    (c) => Date.now() - new Date(c.updatedAt).getTime() < 7 * 24 * 60 * 60 * 1000,
   ).length;
   const totalSkills = new Set(candidates.flatMap((c) => c.currentData.skills))
     .size;
@@ -68,7 +68,7 @@ const Dashboard: React.FC = () => {
       : 0;
 
   const sortedCandidates = [...candidates]
-    .sort((a, b) => b.updatedAt - a.updatedAt)
+    .sort((a, b) => new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime())
     .slice(0, 5);
 
   return (
