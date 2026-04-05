@@ -18,6 +18,9 @@ export const verifyToken = (
     }
 
     const token = authHeader.split(" ")[1];
+    if (!token) {
+        return res.status(401).json({ message: "Invalid token format" });
+    }
     const decoded = jwt.verify(token, JWT_SECRET as string) as unknown as { userId: string };
 
     (req as AuthRequest).userId = decoded.userId;
