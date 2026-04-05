@@ -33,6 +33,9 @@ import {
 import clsx from "clsx";
 import { useNavigate } from "react-router-dom";
 import DiffViewer from "../components/DiffViewer";
+import { useAuth } from "../context/AuthContext";
+import { ShareModal } from "../components/ShareModal";
+import { Share2, CheckCircle2 as CheckIcon, XCircle as XIcon } from "lucide-react";
 
 const Github = ({ className }: { className?: string }) => (
   <svg className={className} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
@@ -69,7 +72,7 @@ type Project = {
 
 const tabs = [
   { id: "profile", label: "Profile View", icon: FileText },
-  { id: "raw", label: "Raw Resume", icon: FileText },
+  { id: "raw", label: "Resume", icon: FileText },
   { id: "interview", label: "AI Interview", icon: BrainCircuit },
   { id: "compare", label: "Version Compare", icon: History },
 ] as const;
@@ -78,9 +81,14 @@ type TabId = (typeof tabs)[number]["id"];
 import { API_BASE_URL } from "../services/apiConfig";
 
 const CandidateDetail: React.FC = () => {
+  const { user } = useAuth();
+  const isEmployee = user?.role === "Employee";
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const [candidate, setCandidate] = useState<Candidate | undefined>(undefined);
+  const [shareTarget, setShareTarget] = useState<{ id: string; name: string } | null>(null);
+  const [updatingStatus, setUpdatingStatus] = useState(false);
+  const [toast, setToast] = useState<{ msg: string; type: "success" | "error" | "info" } | null>(null);
   const [selectedVersionId, setSelectedVersionId] = useState<string | null>(
     null,
   );
@@ -130,6 +138,32 @@ const CandidateDetail: React.FC = () => {
       }
     };
   }, [previewUrl]);
+
+  const showToast = (msg: string, type: "success" | "error" | "info") => {
+    setToast({ msg, type });
+    setTimeout(() => setToast(null), 3000);
+  };
+
+  const handleStatusUpdate = async (status: "Approved" | "Rejected") => {
+    if (!candidate) return;
+    setUpdatingStatus(true);
+    try {
+      const token = localStorage.getItem("rip_token");
+      const cId = candidate.id || candidate._id;
+      const res = await fetch(`${API_BASE_URL}/api/candidate/status/${cId}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
+        body: JSON.stringify({ status }),
+      });
+      if (!res.ok) throw new Error();
+      setCandidate({ ...candidate, status });
+      showToast(`Candidate ${status.toLowerCase()}.`, status === "Approved" ? "success" : "info");
+    } catch {
+      showToast("Failed to update status.", "error");
+    } finally {
+      setUpdatingStatus(false);
+    }
+  };
 
   useEffect(() => {
     const fetchPreview = async () => {
@@ -234,12 +268,37 @@ const CandidateDetail: React.FC = () => {
   if (!candidate)
     return <div className="p-8 text-center text-gray-500">Candidate not found</div>;
 
-  const displayData = (isEditing && editData ? editData : currentVersion?.data) as ResumeData;
+  const displayData = (isEditing && editData ? editData : (currentVersion?.data || candidate?.currentData)) as ResumeData;
   const isViewingLatest =
-    currentVersion?.versionId === candidate?.versions[0].versionId;
+    !candidate?.versions?.length || currentVersion?.versionId === candidate?.versions[0]?.versionId;
 
   return (
-    <div className="space-y-6 pb-10">
+    <div className="space-y-6 pb-10 relative">
+      {/* Toast */}
+      {toast && (
+        <div className={clsx(
+          "fixed top-5 right-5 z-[9999] px-4 py-3 rounded-xl shadow-2xl border flex items-center gap-3",
+          toast.type === "success" && "bg-emerald-50 border-emerald-200 text-emerald-800",
+          toast.type === "error" && "bg-red-50 border-red-200 text-red-800",
+          toast.type === "info" && "bg-blue-50 border-blue-200 text-blue-800",
+        )} style={{ animation: "slideInRight 0.3s ease both" }}>
+          {toast.type === "success" && <CheckIcon className="w-5 h-5 text-emerald-500" />}
+          {toast.type === "error" && <XIcon className="w-5 h-5 text-red-500" />}
+          {toast.type === "info" && <AlertCircle className="w-5 h-5 text-blue-500" />}
+          <p className="text-sm font-medium">{toast.msg}</p>
+        </div>
+      )}
+
+      {/* Share Modal */}
+      {shareTarget && (
+        <ShareModal
+          candidateName={shareTarget.name}
+          candidateId={shareTarget.id}
+          onClose={() => setShareTarget(null)}
+          showToast={showToast}
+        />
+      )}
+
       {/* Header */}
       <div className="flex flex-col lg:flex-row justify-between items-start lg:items-center gap-4">
         <div className="flex items-center gap-3 w-full lg:w-auto">
@@ -263,8 +322,24 @@ const CandidateDetail: React.FC = () => {
                 placeholder="Full Name"
               />
             ) : (
-              <h1 className="text-2xl font-bold text-gray-900">
+              <h1 className="text-2xl font-bold text-gray-900 flex items-center gap-3">
                 {candidate.fullName}
+                <span className={clsx(
+                  "inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-bold",
+                  candidate.status === "Approved" && "bg-emerald-100 text-emerald-700",
+                  candidate.status === "Rejected" && "bg-red-100 text-red-700",
+                  candidate.status === "Pending" && "bg-amber-100 text-amber-700",
+                )}>
+                  {candidate.status === "Approved" && <CheckIcon className="w-3 h-3" />}
+                  {candidate.status === "Rejected" && <XIcon className="w-3 h-3" />}
+                  {candidate.status === "Pending" && <Clock className="w-3 h-3" />}
+                  {candidate.status || "Pending"}
+                </span>
+                {!isEmployee && candidate.referredBy && (
+                  <span className="inline-flex items-center gap-1 px-2 py-1 rounded-md text-[10px] uppercase font-bold bg-purple-50 text-purple-600 border border-purple-100">
+                    Referred by {candidate.referredBy.name}
+                  </span>
+                )}
               </h1>
             )}
 
@@ -371,7 +446,20 @@ const CandidateDetail: React.FC = () => {
             </select>
           </div>
 
-          {isViewingLatest &&
+          {isViewingLatest && user?.role === "Employee" && (
+            <div className="flex gap-2">
+              <button onClick={() => handleStatusUpdate("Approved")} disabled={updatingStatus || candidate.status === "Approved"}
+                className="flex items-center justify-center gap-1.5 px-3 py-1.5 bg-emerald-50 hover:bg-emerald-100 text-emerald-700 border border-emerald-200 rounded-lg text-sm font-semibold transition-all disabled:opacity-50">
+                <CheckIcon className="w-4 h-4" /> Approve
+              </button>
+              <button onClick={() => handleStatusUpdate("Rejected")} disabled={updatingStatus || candidate.status === "Rejected"}
+                className="flex items-center justify-center gap-1.5 px-3 py-1.5 bg-red-50 hover:bg-red-100 text-red-600 border border-red-200 rounded-lg text-sm font-semibold transition-all disabled:opacity-50">
+                <XIcon className="w-4 h-4" /> Reject
+              </button>
+            </div>
+          )}
+
+          {isViewingLatest && (user?.role === "HR" || user?.role === "Admin") &&
             (isEditing ? (
               <>
                 <button
@@ -388,22 +476,31 @@ const CandidateDetail: React.FC = () => {
                 </button>
               </>
             ) : (
-              <button
-                onClick={handleEditToggle}
-                className="p-2 text-indigo-600 hover:bg-indigo-50 rounded-lg transition-colors"
-                title="Edit Info"
-              >
-                <Edit2 className="w-5 h-5" />
-              </button>
+              <>
+                <button
+                  onClick={() => setShareTarget({ id: candidate.id || candidate._id || "", name: candidate.fullName })}
+                  className="p-2 text-indigo-600 hover:bg-indigo-50 rounded-lg transition-colors flex items-center gap-1"
+                  title="Share Candidate"
+                >
+                  <Share2 className="w-5 h-5" />
+                  <span className="text-sm font-medium hidden sm:inline">Share</span>
+                </button>
+                <button
+                  onClick={handleEditToggle}
+                  className="p-2 text-gray-500 hover:bg-gray-100 rounded-lg transition-colors"
+                  title="Edit Info"
+                >
+                  <Edit2 className="w-5 h-5" />
+                </button>
+                <button
+                  onClick={handleDelete}
+                  className="p-2 text-red-500 hover:bg-red-50 rounded-lg transition-colors"
+                  title="Delete Candidate"
+                >
+                  <Trash2 className="w-5 h-5" />
+                </button>
+              </>
             ))}
-
-          <button
-            onClick={handleDelete}
-            className="p-2 text-red-500 hover:bg-red-50 rounded-lg transition-colors"
-            title="Delete Candidate"
-          >
-            <Trash2 className="w-5 h-5" />
-          </button>
         </div>
       </div>
 

@@ -11,6 +11,8 @@ import {
 } from "lucide-react";
 import { Link } from "react-router-dom";
 import { StatCardSkeleton, CandidateSkeleton } from "../components/Skeleton";
+import { useAuth } from "../context/AuthContext";
+import { API_BASE_URL } from "../services/apiConfig";
 
 type StatCardProps = {
   icon: LucideIcon;
@@ -32,6 +34,7 @@ const StatCard = ({ icon: Icon, label, value, color }: StatCardProps) => (
 );
 
 const Dashboard: React.FC = () => {
+  const { user } = useAuth();
   const [candidates, setCandidates] = useState<Candidate[]>([]);
   const [isLoading, setIsLoading] = useState(true);
 
@@ -39,8 +42,13 @@ const Dashboard: React.FC = () => {
     async function fetchCandidates() {
       setIsLoading(true);
       try {
-        const candidates = await getCandidates();
-        setCandidates(candidates);
+        const token = localStorage.getItem("rip_token");
+        const res = await fetch(`${API_BASE_URL}/api/candidate/all`, {
+          headers: { Authorization: `Bearer ${token}` }
+        });
+        if (!res.ok) throw new Error();
+        const data = await res.json();
+        setCandidates(data);
       } catch (err) {
         console.error("Error fetching candidates:", err);
       } finally {
@@ -71,11 +79,17 @@ const Dashboard: React.FC = () => {
     .sort((a, b) => new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime())
     .slice(0, 5);
 
+  const isEmployee = user?.role === "Employee";
+
   return (
     <div className="space-y-8">
       <div>
-        <h1 className="text-2xl font-bold text-gray-900">Dashboard</h1>
-        <p className="text-gray-500">Overview of your resume database.</p>
+        <h1 className="text-2xl font-bold text-gray-900">
+          Welcome back{user?.name ? `, ${user.name.split(" ")[0]}` : ""}!
+        </h1>
+        <p className="text-gray-500">
+          {isEmployee ? "Overview of candidates shared with you for evaluation." : "Overview of your resume database."}
+        </p>
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
@@ -90,13 +104,13 @@ const Dashboard: React.FC = () => {
           <>
             <StatCard
               icon={Users}
-              label="Total Candidates"
+              label={isEmployee ? "Shared Candidates" : "Total Candidates"}
               value={totalCandidates}
               color="bg-blue-500"
             />
             <StatCard
               icon={Clock}
-              label="New This Week"
+              label={"New This Week"}
               value={recentUploads}
               color="bg-green-500"
             />
@@ -176,12 +190,16 @@ const Dashboard: React.FC = () => {
           ) : (
             <div className="p-12 text-center text-gray-500">
               <p className="mb-2">No candidates found.</p>
-              <Link
-                to="/ingest"
-                className="text-indigo-600 font-medium hover:underline"
-              >
-                Add your first candidate
-              </Link>
+              {!isEmployee ? (
+                <Link
+                  to="/ingest"
+                  className="text-indigo-600 font-medium hover:underline"
+                >
+                  Add your first candidate
+                </Link>
+              ) : (
+                <p className="text-sm">Candidates shared with you will appear here.</p>
+              )}
             </div>
           )}
         </div>

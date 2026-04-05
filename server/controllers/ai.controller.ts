@@ -2,6 +2,7 @@ import type { Response } from "express";
 import type { AuthRequest } from "../middlewares/auth.middleware.js";
 import { GoogleGenerativeAI } from "@google/generative-ai";
 import { GEMINI_API_KEY } from "../config/env.js";
+import { extractPdfData } from "../services/pdf.service.js";
 
 const genAI = new GoogleGenerativeAI(GEMINI_API_KEY);
 const model = genAI.getGenerativeModel({ 
@@ -22,17 +23,9 @@ const generateWithGemini = async (prompt: string) => {
   }
 };
 
-// @route  POST /api/ai/parse-resume
-// Body:   { rawText: string }
-export const parseResume = async (req: AuthRequest, res: Response) => {
-  try {
-    const { rawText } = req.body;
-
-    if (!rawText || typeof rawText !== "string") {
-      return res.status(400).json({ success: false, message: "rawText is required" });
-    }
-
-    const prompt = `
+// Helper for internal use (e.g. drive controller)
+export const parseResumeTextHelper = async (rawText: string) => {
+  const prompt = `
 Extract structured information from this resume text. 
 Return a JSON object with this structure:
 {
@@ -52,8 +45,39 @@ Return a JSON object with this structure:
 Resume text:
 ${rawText}
 `;
+  return await generateWithGemini(prompt);
+};
 
-    const parsed = await generateWithGemini(prompt);
+// @route  POST /api/ai/parse-resume
+// Body:   { rawText: string }
+export const parseResume = async (req: AuthRequest, res: Response) => {
+  try {
+    let { rawText } = req.body;
+
+    if (!rawText || typeof rawText !== "string") {
+      return res.status(400).json({ success: false, message: "rawText is required" });
+    }
+
+    // Check if it's a PDF base64 marker from the client
+    if (rawText.startsWith("[PDF base64 input]") || rawText.startsWith("[PDF content encoded in base64")) {
+      const lines = rawText.split("\n");
+      // The second line or everything after the first newline is usually the base64
+      const base64Data = lines.slice(1).join("").trim();
+      
+      try {
+        const buffer = Buffer.from(base64Data, 'base64');
+        const { text, links } = await extractPdfData(buffer);
+        rawText = text;
+        if (links && links.length > 0) {
+          rawText += "\n\nEmbedded Links Found in PDF:\n" + links.join("\n");
+        }
+      } catch (pdfErr) {
+        console.error("PDF Parsing failed in AI controller:", pdfErr);
+        // Fallback to text if possible or error
+      }
+    }
+
+    const parsed = await parseResumeTextHelper(rawText);
     res.status(200).json(parsed);
   } catch (error: any) {
     console.error("Error parsing resume with Gemini:", error);

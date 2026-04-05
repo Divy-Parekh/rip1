@@ -49,13 +49,18 @@ export interface IResumeVersion {
 }
 
 export interface ICandidate extends Document {
-  id: string; // client-generated uuid
+  id: string;
   userId: mongoose.Types.ObjectId;
   fullName: string;
   email: string;
   phone: string;
   versions: IResumeVersion[];
   currentData: IResumeData;
+  status: "Pending" | "Approved" | "Rejected";
+  referredBy?: { userId: mongoose.Types.ObjectId; name: string };
+  recruitmentDriveId?: mongoose.Types.ObjectId;
+  isSharedWithHR: boolean;
+  sharedWith: mongoose.Types.ObjectId[];
   createdAt: Date;
   updatedAt: Date;
 }
@@ -134,6 +139,14 @@ const CandidateSchema = new Schema<ICandidate>({
   phone: { type: String, default: "" },
   versions: [ResumeVersionSchema],
   currentData: { type: ResumeDataSchema, required: true },
+  status: { type: String, enum: ["Pending", "Approved", "Rejected"], default: "Pending" },
+  referredBy: {
+    userId: { type: Schema.Types.ObjectId, ref: "User" },
+    name: { type: String },
+  },
+  recruitmentDriveId: { type: Schema.Types.ObjectId, ref: "RecruitmentDrive" },
+  isSharedWithHR: { type: Boolean, default: false },
+  sharedWith: [{ type: Schema.Types.ObjectId, ref: "User" }],
   createdAt: { type: Date, default: Date.now },
   updatedAt: { type: Date, default: Date.now },
 });

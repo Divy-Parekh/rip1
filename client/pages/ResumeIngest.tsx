@@ -9,11 +9,13 @@ import {
   Loader2,
   FileType,
   X,
-  ExternalLink
+  ExternalLink,
+  Trash2,
 } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import clsx from "clsx";
 import mammoth from "mammoth";
+import { useAuth } from "../context/AuthContext";
 
 type FileStatus = "pending" | "processing" | "success" | "error";
 
@@ -27,6 +29,8 @@ interface FileEntry {
 }
 
 const ResumeIngest: React.FC = () => {
+  const { user, isLoading: authLoading } = useAuth();
+  const isEmployee = user?.role === "Employee";
   const navigate = useNavigate();
   const [files, setFiles] = useState<FileEntry[]>([]);
   const [isProcessing, setIsProcessing] = useState(false);
@@ -226,7 +230,7 @@ const ResumeIngest: React.FC = () => {
           const candidate = await addOrUpdateCandidate(
             parsedData,
             rawTextForStorage,
-            referrer || "System",
+            user?.name || "System",
             fileId,
           );
 
@@ -384,21 +388,7 @@ const ResumeIngest: React.FC = () => {
           </div>
         )}
 
-        {/* Referrer Input */}
-        <div className="pt-2 border-t border-gray-100">
-          <label className="block text-sm font-medium text-gray-700 mb-1">
-            Referred By (Optional)
-          </label>
-          <input
-            type="text"
-            value={referrer}
-            onChange={(e) => setReferrer(e.target.value)}
-            disabled={isProcessing}
-            className="w-full rounded-lg border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 border p-2 bg-white text-gray-900 disabled:bg-gray-50"
-            placeholder="Recruiter Name or Source Tracker"
-          />
-        </div>
-
+        {/* Process Button */}
         <div className="flex justify-end pt-2">
           <button
             onClick={handleSubmit}

@@ -6,6 +6,8 @@ import cors from "cors";
 import { MONGO_URL } from "./config/env.js";
 import jobRoutes from "./routes/job.route.js";
 import aiRoutes from "./routes/ai.route.js";
+import userRoutes from "./routes/user.route.js";
+import driveRoutes from "./routes/drive.route.js";
 
 const app = express();
 
@@ -21,10 +23,8 @@ app.use("/api/auth", authRoutes);
 app.use("/api/candidate", candidateRoutes);
 app.use("/api/jobs", jobRoutes);
 app.use("/api/ai", aiRoutes);
+app.use("/api/users", userRoutes);
+app.use("/api/drives", driveRoutes);
 
-mongoose
-  .connect(MONGO_URL)
-  .then(() => console.log("DB connected"))
-  .catch((err) => console.error(err));
-
+// DB connection removed here to be managed by server.ts cleanup
 export default app;

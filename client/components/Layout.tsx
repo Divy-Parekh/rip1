@@ -12,6 +12,8 @@ import {
   X,
   ChevronLeft,
   ChevronRight,
+  Shield,
+  Megaphone,
 } from "lucide-react";
 import clsx from "clsx";
 import { useAuth } from "../context/AuthContext";
@@ -23,12 +25,14 @@ const Layout: React.FC = () => {
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
 
   const navItems = [
-    { path: "/dashboard", icon: LayoutDashboard, label: "Dashboard" },
-    { path: "/ingest", icon: Upload, label: "Add Resume" },
-    { path: "/candidates", icon: Users, label: "Candidates" },
-    { path: "/role-match", icon: UserPlus, label: "Role Match" },
-    { path: "/compare", icon: Scale, label: "Compare" },
-  ];
+    { path: "/dashboard", icon: LayoutDashboard, label: "Dashboard", roles: ["Admin", "HR", "Employee"] },
+    { path: "/ingest", icon: Upload, label: "Add Resume", roles: ["Admin", "HR", "Employee"] },
+    { path: "/candidates", icon: Users, label: "Candidates", roles: ["Admin", "HR", "Employee"] },
+    { path: "/drives", icon: Megaphone, label: "Recruitment Drives", roles: ["Admin", "HR"] },
+    { path: "/role-match", icon: UserPlus, label: "Role Match", roles: ["Admin", "HR"] },
+    { path: "/compare", icon: Scale, label: "Compare", roles: ["Admin", "HR"] },
+    { path: "/admin", icon: Shield, label: "User Management", roles: ["Admin", "HR"] },
+  ].filter((item) => !user?.role || item.roles.includes(user.role));
 
   const toggleSidebar = () => setIsCollapsed(!isCollapsed);
 
@@ -127,7 +131,17 @@ const Layout: React.FC = () => {
                 <p className="text-sm font-medium text-gray-900 truncate">
                   {user?.name}
                 </p>
-                <p className="text-xs text-gray-500 truncate">{user?.email}</p>
+                <div className="flex items-center gap-1.5 mt-0.5">
+                  <span className={clsx(
+                    "text-[10px] font-bold px-1.5 py-0.5 rounded-full",
+                    user?.role === "Admin" && "bg-purple-100 text-purple-700",
+                    user?.role === "HR" && "bg-indigo-100 text-indigo-700",
+                    user?.role === "Employee" && "bg-sky-100 text-sky-700",
+                  )}>
+                    {user?.role}
+                  </span>
+                  <p className="text-xs text-gray-500 truncate">{user?.email}</p>
+                </div>
               </div>
             )}
           </div>
@@ -213,9 +227,19 @@ const Layout: React.FC = () => {
                   <p className="text-sm font-medium text-gray-900 truncate">
                     {user?.name}
                   </p>
-                  <p className="text-xs text-gray-500 truncate">
-                    {user?.email}
-                  </p>
+                  <div className="flex items-center gap-1.5 mt-0.5">
+                    <span className={clsx(
+                      "text-[10px] font-bold px-1.5 py-0.5 rounded-full",
+                      user?.role === "Admin" && "bg-purple-100 text-purple-700",
+                      user?.role === "HR" && "bg-indigo-100 text-indigo-700",
+                      user?.role === "Employee" && "bg-sky-100 text-sky-700",
+                    )}>
+                      {user?.role}
+                    </span>
+                    <p className="text-xs text-gray-500 truncate">
+                      {user?.email}
+                    </p>
+                  </div>
                 </div>
               </div>
               <button

@@ -1,15 +1,14 @@
 import React, { createContext, useContext, useState, useEffect } from "react";
-import { User } from "../types";
+import { User, UserRole } from "../types";
+import { API_BASE_URL } from "../services/apiConfig";
 
 interface AuthContextType {
   user: User | null;
   isLoading: boolean;
-  login: (email: string, password: string) => Promise<void>;
-  register: (name: string, email: string, password: string) => Promise<void>;
+  login: (email: string, password: string, role: UserRole) => Promise<void>;
+  register: (name: string, email: string, password: string, role: UserRole) => Promise<void>;
   logout: () => void;
 }
-
-import { API_BASE_URL } from "../services/apiConfig";
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
@@ -29,52 +28,64 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
       } catch (error) {
         console.error("Invalid JSON in localStorage:", storedUser);
         console.log(error);
-        localStorage.removeItem("rip_user"); // cleanup
+        localStorage.removeItem("rip_user");
       }
     }
 
     setIsLoading(false);
   }, []);
 
-  const login = async (email: string, password: string) => {
-    const response = await fetch("http://localhost:5000/api/auth/login", {
+  const login = async (email: string, password: string, role: UserRole) => {
+    const response = await fetch(`${API_BASE_URL}/api/auth/login`, {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
       },
-      body: JSON.stringify({ email, password }),
+      body: JSON.stringify({ email, password, role }),
     });
     const data = await response.json();
 
     if (response.ok) {
-      setUser(data.user);
-      localStorage.setItem("rip_user", JSON.stringify(data.user));
+      const userData: User = {
+        id: data.user.id,
+        name: data.user.name,
+        email: data.user.email,
+        role: data.user.role,
+      };
+      setUser(userData);
+      localStorage.setItem("rip_user", JSON.stringify(userData));
       if (data.token) {
         localStorage.setItem("rip_token", data.token);
       }
     } else {
-      throw new Error(data.message);
+      throw new Error(data.message || "Login failed");
     }
   };
 
-  const register = async (name: string, email: string, password: string) => {
-    const response = await fetch("http://localhost:5000/api/auth/signup", {
+  const register = async (name: string, email: string, password: string, role: UserRole) => {
+    const response = await fetch(`${API_BASE_URL}/api/auth/signup`, {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
       },
-      body: JSON.stringify({ name, email, password }),
+      body: JSON.stringify({ name, email, password, role }),
     });
     const data = await response.json();
 
     if (response.ok) {
-      setUser(data.user);
-      localStorage.setItem("rip_user", JSON.stringify(data.user));
+      const userData: User = {
+        id: data.user.id,
+        name: data.user.name,
+        email: data.user.email,
+        role: data.user.role,
+      };
+      setUser(userData);
+      localStorage.setItem("rip_user", JSON.stringify(userData));
       if (data.token) {
         localStorage.setItem("rip_token", data.token);
       }
     } else {
-      throw new Error(data.message);
+      throw new Error(data.message || "Registration failed");
     }
   };
 

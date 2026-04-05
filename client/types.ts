@@ -48,16 +48,33 @@ export interface ResumeVersion {
 
 export interface Candidate {
   id: string;
+  _id?: string;
+  userId: string;
   fullName: string;
   email: string;
   phone: string;
   versions: ResumeVersion[];
-  // Aggregated/Latest data
   currentData: ResumeData;
+  status: "Pending" | "Approved" | "Rejected";
+  referredBy?: { userId: string; name: string };
+  isSharedWithHR?: boolean;
+  sharedWith: string[];
   createdAt: string;
   updatedAt: string;
-  matchScore?: number; // Transient field for search
-  missingSkills?: string[]; // Transient
+  matchScore?: number;
+  missingSkills?: string[];
+  recruitmentDriveId?: string;
+}
+
+export interface RecruitmentDrive {
+  _id: string;
+  title: string;
+  description?: string;
+  slug: string;
+  createdBy: { _id: string; name: string; email?: string } | string;
+  isActive: boolean;
+  availableRoles: string[];
+  createdAt: string;
 }
 
 export interface JobRole {
@@ -79,10 +96,13 @@ export interface InterviewQuestion {
   answerGuide?: string; // Brief on what a good answer looks like
 }
 
+export type UserRole = "Admin" | "HR" | "Employee";
+
 export interface User {
   id: string;
   name: string;
   email: string;
+  role: UserRole;
   token?: string;
 }
 
