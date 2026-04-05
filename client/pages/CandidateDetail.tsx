@@ -75,6 +75,8 @@ const tabs = [
 ] as const;
 type TabId = (typeof tabs)[number]["id"];
 
+import { API_BASE_URL } from "../services/apiConfig";
+
 const CandidateDetail: React.FC = () => {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
@@ -134,7 +136,7 @@ const CandidateDetail: React.FC = () => {
       if (activeTab === "raw" && currentVersion?.fileId && !previewUrl) {
         setIsPreviewLoading(true);
         try {
-          const res = await apiClient(`http://localhost:5000/api/candidate/download/${currentVersion.fileId}`);
+          const res = await apiClient(`${API_BASE_URL}/api/candidate/download/${currentVersion.fileId}`);
           if (res.ok) {
             const blob = await res.blob();
             const url = window.URL.createObjectURL(blob);

@@ -1,7 +1,8 @@
 import { ResumeData, InterviewQuestion, JobRole, Candidate } from "../types";
 import { apiClient } from "./apiClient";
+import { API_BASE_URL } from "./apiConfig";
 
-const AI_BASE_URL = "http://localhost:5000/api/ai";
+const AI_BASE_URL = `${API_BASE_URL}/api/ai`;
 
 // Parse raw resume text via server → structured ResumeData
 export const parseResumeText = async (

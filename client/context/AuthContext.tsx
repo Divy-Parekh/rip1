@@ -9,6 +9,8 @@ interface AuthContextType {
   logout: () => void;
 }
 
+import { API_BASE_URL } from "../services/apiConfig";
+
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
 export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({

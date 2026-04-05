@@ -1,9 +1,10 @@
 import { Candidate, ResumeData, ResumeVersion, SavedJobRole } from "../types";
 import { v4 as uuidv4 } from "uuid";
 import { apiClient } from "./apiClient";
+import { API_BASE_URL } from "./apiConfig";
 
-const CANDIDATE_BASE_URL = "http://localhost:5000/api/candidate";
-const JOBS_BASE_URL = "http://localhost:5000/api/jobs";
+const CANDIDATE_BASE_URL = `${API_BASE_URL}/api/candidate`;
+const JOBS_BASE_URL = `${API_BASE_URL}/api/jobs`;
 
 // --- Candidates ---
 export const getCandidates = async (): Promise<Candidate[]> => {
@@ -123,7 +124,7 @@ export const addOrUpdateCandidate = async (
 
   const newVersion: ResumeVersion = {
     versionId: uuidv4(),
-    uploadedAt: Date.now(),
+    uploadedAt: new Date().toISOString(),
     uploadedBy,
     rawText,
     fileId,
@@ -137,7 +138,7 @@ export const addOrUpdateCandidate = async (
       fullName: parsedData.fullName || existing.fullName,
       email: parsedData.email || existing.email,
       phone: parsedData.phone || existing.phone,
-      updatedAt: Date.now(),
+      updatedAt: new Date().toISOString(),
       versions: [newVersion, ...existing.versions],
     };
 
@@ -149,8 +150,8 @@ export const addOrUpdateCandidate = async (
       fullName: parsedData.fullName,
       email: parsedData.email,
       phone: parsedData.phone,
-      createdAt: Date.now(),
-      updatedAt: Date.now(),
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
       versions: [newVersion],
       currentData: parsedData,
     } as Candidate;
