@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+﻿import React, { useState, useEffect } from "react";
 import { useParams } from "react-router-dom";
 import {
   BarChart2,
@@ -154,7 +154,7 @@ const PublicSubmissionForm: React.FC = () => {
       <div className="relative w-full max-w-lg" style={{ animation: "fadeSlideUp 0.4s ease both" }}>
         {/* Brand header */}
         <div className="flex items-center gap-2 text-white mb-6 justify-center">
-          <BarChart2 className="w-6 h-6" />
+          <BarChart2 className="w-6 h-6 text-white" />
           <span className="font-bold text-lg tracking-tight">RIP AI</span>
         </div>
 
@@ -237,7 +237,7 @@ const PublicSubmissionForm: React.FC = () => {
         </div>
 
         <p className="text-center text-indigo-200 text-xs mt-4">
-          Powered by RIP AI · Resume Intelligence Platform
+          Powered by RIP AI Â· Resume Intelligence Platform
         </p>
       </div>
 
@@ -249,3 +249,4 @@ const PublicSubmissionForm: React.FC = () => {
 };
 
 export default PublicSubmissionForm;
+

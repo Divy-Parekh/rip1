@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+﻿import React, { useState } from "react";
 import { Link, Outlet, useLocation } from "react-router-dom";
 import {
   LayoutDashboard,
@@ -52,7 +52,7 @@ const Layout: React.FC = () => {
               isCollapsed && "justify-center w-full",
             )}
           >
-            <BarChart2 className="w-8 h-8 flex-shrink-0" />
+            <BarChart2 className="w-6 h-6 text-white flex-shrink-0" />
             {!isCollapsed && (
               <span className="whitespace-nowrap transition-opacity">
                 RIP AI
@@ -177,7 +177,7 @@ const Layout: React.FC = () => {
           <div className="relative bg-white w-64 max-w-[85vw] h-full shadow-2xl flex flex-col animate-slide-in-left">
             <div className="h-16 flex items-center justify-between px-6 border-b border-gray-200">
               <div className="flex items-center gap-2 font-bold text-xl text-primary">
-                <BarChart2 className="w-6 h-6" />
+                <BarChart2 className="w-6 h-6 text-white" />
                 <span>RIP AI</span>
               </div>
               <button
@@ -268,7 +268,7 @@ const Layout: React.FC = () => {
               <Menu className="w-6 h-6" />
             </button>
             <span className="font-bold text-primary text-lg flex items-center gap-2">
-              <BarChart2 className="w-5 h-5" />
+              <BarChart2 className="w-6 h-6 text-white" />
               RIP AI
             </span>
           </div>
@@ -286,3 +286,4 @@ const Layout: React.FC = () => {
 };
 
 export default Layout;
+

@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from "react";
+﻿import React, { useState, useEffect, useCallback } from "react";
 import { useAuth } from "../context/AuthContext";
 import { useNavigate } from "react-router-dom";
 import {
@@ -190,7 +190,7 @@ const Login: React.FC = () => {
           <div className="mx-auto w-full max-w-sm lg:w-96">
             {/* Mobile logo */}
             <div className="lg:hidden flex items-center gap-2 text-indigo-600 mb-10">
-              <BarChart2 className="w-8 h-8" />
+              <BarChart2 className="w-6 h-6 text-white" />
               <span className="font-bold text-xl tracking-tight">RIP AI</span>
             </div>
 
@@ -361,10 +361,10 @@ const Login: React.FC = () => {
                   {selectedRole === "Admin" && mode === "signup"
                     ? "Creating the Administrator account. Full system access will be granted."
                     : selectedRole === "Admin"
-                    ? "Admin access — full system control."
+                    ? "Admin access - full system control."
                     : selectedRole === "HR"
-                    ? "HR access — manage candidates, drives, and employees."
-                    : "Employee access — view shared candidates and refer new ones."}
+                    ? "HR access - manage candidates, drives, and employees."
+                    : "Employee access - view shared candidates and refer new ones."}
                 </span>
               </div>
 
@@ -480,14 +480,6 @@ const Login: React.FC = () => {
                   ))}
               </div>
             </div>
-
-            {/* Pill badge */}
-            <div className="flex justify-center">
-              <div className="inline-flex items-center gap-2 px-4 py-2 bg-white/10 backdrop-blur-sm rounded-full border border-white/20 text-xs text-white/80 font-medium">
-                <CheckCircle2 className="w-3 h-3 text-emerald-400" />
-                <span>Trusted by Modern HR Teams</span>
-              </div>
-            </div>
           </div>
         </div>
       </div>
@@ -510,3 +502,5 @@ const Login: React.FC = () => {
 };
 
 export default Login;
+
+
