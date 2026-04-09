@@ -1,4 +1,4 @@
-import type { Request, Response } from "express";
+﻿import type { Request, Response } from "express";
 import RecruitmentDrive from "../models/drive.model.js";
 import Candidate from "../models/candidate.model.js";
 import Job from "../models/job.model.js";
@@ -112,7 +112,7 @@ export const submitToDrive = async (req: Request, res: Response) => {
     if (!drive) return res.status(404).json({ message: "Drive not found or inactive" });
 
     const { roleApplying } = req.body;
-    const fullName = req.body.fullName || ""; // Fallback for manual uploads if still used elsewhere
+    const fullName = req.body.fullName || ""; 
     const email = req.body.email || "";
     const phone = req.body.phone || "";
 
@@ -138,28 +138,27 @@ export const submitToDrive = async (req: Request, res: Response) => {
     let extractedText = "";
     let aiData: any = null;
 
-    // Handle file upload and AI processing
     if (req.file) {
-      // 1. Extract Text and Links for AI
       if (req.file.mimetype === "application/pdf") {
         try {
           const { text, links } = await extractPdfData(req.file.buffer);
           extractedText = text;
           
-          // Append links to the end of the text so the AI can find them
           if (links && links.length > 0) {
             extractedText += "\n\nEmbedded Links Found in PDF:\n" + links.join("\n");
           }
 
           if (extractedText.trim()) {
+            console.log(`[Drive Submission] Successfully extracted ${extractedText.length} characters from PDF.`);
             aiData = await parseResumeTextHelper(extractedText);
+          } else {
+            console.warn("[Drive Submission] PDF extraction returned empty text.");
           }
         } catch (aiErr) {
-          console.error("AI/PDF Processing failed, falling back to manual data:", aiErr);
+          console.error("[Drive Submission] AI/PDF Processing failed:", aiErr);
         }
       }
 
-      // 2. Upload to GridFS
       const gfs = getGfs();
       const filename = `${Date.now()}-${req.file.originalname}`;
       
@@ -179,11 +178,9 @@ export const submitToDrive = async (req: Request, res: Response) => {
       });
     }
 
-    // Merge AI data with form data (form data takes precedence if manually filled)
     const finalData = {
       ...currentData,
       ...(aiData || {}),
-      // Ensure basic fields from form are kept if AI missed them
       fullName: fullName || aiData?.fullName || "Extracted Candidate",
       email: email || aiData?.email || "no-email-found@example.com",
       phone: phone || aiData?.phone || "",
@@ -193,7 +190,7 @@ export const submitToDrive = async (req: Request, res: Response) => {
       versionId: uuidv4(),
       uploadedAt: new Date().toISOString(),
       uploadedBy: "Candidate",
-      rawText: extractedText || "Resume file uploaded via Recruitment Drive.",
+      rawText: extractedText || "Resume file uploaded via Recruitment Drive (Text Extraction Empty).",
       fileId,
       data: finalData
     }] : [];
@@ -211,9 +208,10 @@ export const submitToDrive = async (req: Request, res: Response) => {
       sharedWith: [],
     });
 
+    console.log(`[Drive Submission] Successfully processed candidate: ${candidate.fullName} (${candidate.email})`);
     res.status(201).json({ message: "Application submitted successfully", candidateId: candidate.id });
   } catch (err) {
-    console.error(err);
+    console.error(`[Drive Submission] Global error:`, err);
     res.status(500).json({ message: "Server error" });
   }
 };
