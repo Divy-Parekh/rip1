@@ -1,4 +1,4 @@
-import dotenv from "dotenv";
+﻿import dotenv from "dotenv";
 
 dotenv.config();
 
@@ -7,3 +7,4 @@ export const MONGO_URL =
   process.env.MONGO_URL || ""
 export const JWT_SECRET = process.env.JWT_SECRET || "jwt_secret";
 export const GEMINI_API_KEY = process.env.GEMINI_API_KEY || "";
+export const HTTPS_PROXY = process.env.HTTPS_PROXY || "";

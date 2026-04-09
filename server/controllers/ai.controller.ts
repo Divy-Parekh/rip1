@@ -1,14 +1,25 @@
-import type { Response } from "express";
+﻿import type { Response } from "express";
 import type { AuthRequest } from "../middlewares/auth.middleware.js";
 import { GoogleGenerativeAI } from "@google/generative-ai";
-import { GEMINI_API_KEY } from "../config/env.js";
+import { GEMINI_API_KEY, HTTPS_PROXY } from "../config/env.js";
 import { extractPdfData } from "../services/pdf.service.js";
+import { HttpsProxyAgent } from "https-proxy-agent";
+import nodeFetch from "node-fetch";
+
+// Setup Proxy if available
+let requestOptions: any = {};
+if (HTTPS_PROXY) {
+  console.log(`[Gemini AI] Using Proxy from environment: ${HTTPS_PROXY.replace(/:[^:@]+@/, ":****@")}`);
+  const agent = new HttpsProxyAgent(HTTPS_PROXY);
+  const proxiedFetch = (url: any, options: any) => nodeFetch(url, { ...options, agent });
+  requestOptions = { fetch: proxiedFetch };
+}
 
 const genAI = new GoogleGenerativeAI(GEMINI_API_KEY);
 const model = genAI.getGenerativeModel({ 
   model: "gemini-3.1-flash-lite-preview",
   generationConfig: { responseMimeType: "application/json" }
-});
+}, requestOptions);
 
 // Helper to interact with Gemini uniformly
 const generateWithGemini = async (prompt: string) => {
@@ -18,7 +29,7 @@ const generateWithGemini = async (prompt: string) => {
     const text = response.text();
     return JSON.parse(text);
   } catch (err: any) {
-    console.error("Gemini API Error:", err);
+    console.error("Gemini API Error details:", err);
     throw new Error(`Gemini AI Error: ${err.message}`);
   }
 };
@@ -61,7 +72,6 @@ export const parseResume = async (req: AuthRequest, res: Response) => {
     // Check if it's a PDF base64 marker from the client
     if (rawText.startsWith("[PDF base64 input]") || rawText.startsWith("[PDF content encoded in base64")) {
       const lines = rawText.split("\n");
-      // The second line or everything after the first newline is usually the base64
       const base64Data = lines.slice(1).join("").trim();
       
       try {
@@ -73,7 +83,6 @@ export const parseResume = async (req: AuthRequest, res: Response) => {
         }
       } catch (pdfErr) {
         console.error("PDF Parsing failed in AI controller:", pdfErr);
-        // Fallback to text if possible or error
       }
     }
 
@@ -143,7 +152,6 @@ Return a JSON array of objects:
 `;
 
     const parsed = await generateWithGemini(prompt);
-    // Ensure we return an array
     res.status(200).json(Array.isArray(parsed) ? parsed : []);
   } catch (error: any) {
     console.error("Error generating questions with Gemini:", error);
