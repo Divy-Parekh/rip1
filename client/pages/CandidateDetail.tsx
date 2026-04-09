@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react";
+﻿import React, { useEffect, useState } from "react";
 import { useParams, Link } from "react-router-dom";
 import {
   getCandidateById,
@@ -79,6 +79,14 @@ const tabs = [
 type TabId = (typeof tabs)[number]["id"];
 
 import { API_BASE_URL } from "../services/apiConfig";
+
+const ensureAbsoluteUrl = (url: string) => {
+  if (!url) return "";
+  if (/^https?:\/\//i.test(url) || url.startsWith("//")) {
+    return url;
+  }
+  return `https://${url}`;
+};
 
 const CandidateDetail: React.FC = () => {
   const { user } = useAuth();
@@ -242,7 +250,7 @@ const CandidateDetail: React.FC = () => {
 
 
   // Helper to format data for diff
-  const formatList = (items: string[]) => items.map((i) => `• ${i}`).join("\n");
+  const formatList = (items: string[]) => items.map((i) => `â€¢ ${i}`).join("\n");
   const formatExperience = (exps: Experience[]) =>
     exps
       .map(
@@ -414,7 +422,7 @@ const CandidateDetail: React.FC = () => {
                     return (
                       <a
                         key={idx}
-                        href={link.url}
+                        href={ensureAbsoluteUrl(link.url)}
                         target="_blank"
                         rel="noreferrer"
                         className="text-indigo-600 hover:text-indigo-800 transition-colors"
@@ -624,7 +632,7 @@ const CandidateDetail: React.FC = () => {
                           </h3>
                           {proj.url && (
                             <a
-                              href={proj.url}
+                              href={ensureAbsoluteUrl(proj.url)}
                               target="_blank"
                               rel="noreferrer"
                               className="text-gray-400 hover:text-indigo-600"
@@ -901,3 +909,4 @@ const CandidateDetail: React.FC = () => {
 };
 
 export default CandidateDetail;
+
