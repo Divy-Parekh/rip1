@@ -1,16 +1,16 @@
 ﻿import type { Response } from "express";
 import type { AuthRequest } from "../middlewares/auth.middleware.js";
 import { GoogleGenerativeAI } from "@google/generative-ai";
-import { GEMINI_API_KEY, HTTPS_PROXY } from "../config/env.js";
+import { GEMINI_API_KEY, GEMINI_PROXY } from "../config/env.js";
 import { extractPdfData } from "../services/pdf.service.js";
 import { HttpsProxyAgent } from "https-proxy-agent";
 import nodeFetch from "node-fetch";
 
 // Setup Proxy if available
 let requestOptions: any = {};
-if (HTTPS_PROXY) {
-  console.log(`[Gemini AI] Using Proxy from environment: ${HTTPS_PROXY.replace(/:[^:@]+@/, ":****@")}`);
-  const agent = new HttpsProxyAgent(HTTPS_PROXY);
+if (GEMINI_PROXY) {
+  console.log(`[Gemini AI] Using Proxy from environment: ${GEMINI_PROXY.replace(/:[^:@]+@/, ":****@")}`);
+  const agent = new HttpsProxyAgent(GEMINI_PROXY);
   const proxiedFetch = (url: any, options: any) => nodeFetch(url, { ...options, agent });
   requestOptions = { fetch: proxiedFetch };
 }
@@ -59,8 +59,6 @@ ${rawText}
   return await generateWithGemini(prompt);
 };
 
-// @route  POST /api/ai/parse-resume
-// Body:   { rawText: string }
 export const parseResume = async (req: AuthRequest, res: Response) => {
   try {
     let { rawText } = req.body;
@@ -69,7 +67,6 @@ export const parseResume = async (req: AuthRequest, res: Response) => {
       return res.status(400).json({ success: false, message: "rawText is required" });
     }
 
-    // Check if it's a PDF base64 marker from the client
     if (rawText.startsWith("[PDF base64 input]") || rawText.startsWith("[PDF content encoded in base64")) {
       const lines = rawText.split("\n");
       const base64Data = lines.slice(1).join("").trim();
@@ -94,8 +91,6 @@ export const parseResume = async (req: AuthRequest, res: Response) => {
   }
 };
 
-// @route  POST /api/ai/match-role
-// Body:   { candidateData: any, jobRole: any }
 export const matchRole = async (req: AuthRequest, res: Response) => {
   try {
     const { candidateData, jobRole } = req.body;
@@ -126,8 +121,6 @@ Return JSON:
   }
 };
 
-// @route  POST /api/ai/generate-questions
-// Body:   { candidateData: any, jobRole: any }
 export const generateQuestions = async (req: AuthRequest, res: Response) => {
   try {
     const { candidateData, jobRole } = req.body;
